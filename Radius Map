@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPFD Distance Visualizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        h1 { color: #333; text-align: center; }
+        #map { height: 600px; width: 100%; }
+        #controls { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>EPFD Distance Visualizer</h1>
+    <div id="controls">
+        <label for="distance">Distance (nautical miles): </label>
+        <input type="number" id="distance" value="200" min="1">
+        <button onclick="updateDistance()">Update Distance</button>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Variables to store the current circle and marker
+        var circle;
+        var marker;
+        var distanceNM = 200;
+
+        // Function to convert nautical miles to meters
+        function nauticalMilesToMeters(nauticalMiles) {
+            return nauticalMiles * 1852;
+        }
+
+        // Function to update the distance
+        function updateDistance() {
+            distanceNM = parseInt(document.getElementById('distance').value);
+            if (isNaN(distanceNM) || distanceNM < 1) {
+                alert("Please enter a valid number greater than 0.");
+                return;
+            }
+            if (circle) {
+                circle.setRadius(nauticalMilesToMeters(distanceNM));
+            }
+        }
+
+        // Event listener for map clicks
+        map.on('click', function(e) {
+            // Remove the previous circle and marker if they exist
+            if (circle) {
+                map.removeLayer(circle);
+            }
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            // Create a new circle
+            circle = L.circle(e.latlng, {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.3,
+                radius: nauticalMilesToMeters(distanceNM)
+            }).addTo(map);
+
+            // Add a new marker at the clicked point
+            marker = L.marker(e.latlng).addTo(map);
+        });
+    </script>
+</body>
+</html>
