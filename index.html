@@ -3,28 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EPFD Distance Visualizer</title>
+    <title>Airport Distance Circle Drawer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h1 { color: #333; text-align: center; }
         #map { height: 600px; width: 100%; }
-        #controls { margin-bottom: 10px; }
+        #controls, #search, #presets { margin-bottom: 10px; }
+        #search input { width: 300px; }
+        #presets { display: flex; flex-wrap: wrap; }
+        .preset-checkbox { margin-right: 10px; }
+        #clearButton { margin-left: 10px; }
     </style>
 </head>
 <body>
     <h1>EPFD Distance Visualizer</h1>
+    <div id="search">
+        <input type="text" id="searchInput" placeholder="Search for a location">
+        <button onclick="searchLocation()">Search</button>
+        <button id="clearButton" onclick="clearCustomMarkers()">Clear Custom Markers</button>
+    </div>
     <div id="controls">
         <label for="distance">Distance (nautical miles): </label>
         <input type="number" id="distance" value="200" min="1">
         <button onclick="updateDistance()">Update Distance</button>
     </div>
+    <div id="presets"></div>
     <div id="map"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script>
         // Initialize the map
-        var map = L.map('map').setView([0, 0], 2);
+        var map = L.map('map').setView([39.8283, -98.5795], 4); // Centered on the US
 
         // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -35,6 +45,24 @@
         var circle;
         var marker;
         var distanceNM = 200;
+        var presetMarkers = {};
+        var customMarkers = [];
+
+        // List of preset airports
+        const airports = [
+            { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
+            { name: "King County International Airport", lat: 47.5290, lon: -122.3019 },
+            { name: "Paine Field", lat: 47.9063, lon: -122.2815 },
+            { name: "Manassas Regional Airport", lat: 38.7214, lon: -77.5151 },
+            { name: "Eastern West Virginia Regional Airport", lat: 39.4026, lon: -77.9846 },
+            { name: "Dayton International Airport", lat: 39.9024, lon: -84.2194 },
+            { name: "Langley Air Force Base", lat: 37.0825, lon: -76.3607 },
+            { name: "Norfolk International Airport", lat: 36.8946, lon: -76.2012 },
+            { name: "Edwards Air Force Base", lat: 34.9054, lon: -117.8836 },
+            { name: "Meadows Field", lat: 35.4339, lon: -119.0578 },
+            { name: "Moffett Federal Airfield", lat: 37.4160, lon: -122.0486 },
+            { name: "Tucson International Airport", lat: 32.1161, lon: -110.9410 }
+        ];
 
         // Function to convert nautical miles to meters
         function nauticalMilesToMeters(nauticalMiles) {
@@ -48,31 +76,119 @@
                 alert("Please enter a valid number greater than 0.");
                 return;
             }
-            if (circle) {
-                circle.setRadius(nauticalMilesToMeters(distanceNM));
-            }
+            updateCustomCircles();
+            updatePresetCircles();
         }
 
-        // Event listener for map clicks
-        map.on('click', function(e) {
-            // Remove the previous circle and marker if they exist
-            if (circle) {
-                map.removeLayer(circle);
-            }
-            if (marker) {
-                map.removeLayer(marker);
-            }
+        // Function to search for a location
+        function searchLocation() {
+            var query = document.getElementById('searchInput').value;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
+                        map.setView([lat, lon], 10);
+                        placeMarkerAndCircle([lat, lon]);
+                    } else {
+                        alert("Location not found. Please try a different search term.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
 
-            // Create a new circle
-            circle = L.circle(e.latlng, {
+        // Function to place marker and circle
+        function placeMarkerAndCircle(latlng) {
+            // Create a new circle and marker
+            var newCircle = L.circle(latlng, {
                 color: 'red',
                 fillColor: '#f03',
                 fillOpacity: 0.3,
                 radius: nauticalMilesToMeters(distanceNM)
             }).addTo(map);
 
-            // Add a new marker at the clicked point
-            marker = L.marker(e.latlng).addTo(map);
+            var newMarker = L.marker(latlng).addTo(map);
+
+            // Get location name
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng[0]}&lon=${latlng[1]}`)
+                .then(response => response.json())
+                .then(data => {
+                    var locationName = data.display_name.split(',')[0];
+                    newMarker.bindPopup(locationName).openPopup();
+                })
+                .catch(error => console.error('Error:', error));
+
+            // Add to custom markers array
+            customMarkers.push({ marker: newMarker, circle: newCircle });
+        }
+
+        // Function to toggle preset marker and circle
+        function togglePreset(airport) {
+            const checkbox = document.getElementById(airport.name);
+            if (checkbox.checked) {
+                const markerCircle = L.layerGroup([
+                    L.marker([airport.lat, airport.lon]).bindPopup(airport.name),
+                    L.circle([airport.lat, airport.lon], {
+                        color: 'blue',
+                        fillColor: '#30f',
+                        fillOpacity: 0.3,
+                        radius: nauticalMilesToMeters(distanceNM)
+                    })
+                ]).addTo(map);
+                presetMarkers[airport.name] = markerCircle;
+            } else if (presetMarkers[airport.name]) {
+                map.removeLayer(presetMarkers[airport.name]);
+                delete presetMarkers[airport.name];
+            }
+        }
+
+        // Function to update preset circles
+        function updatePresetCircles() {
+            airports.forEach(airport => {
+                if (presetMarkers[airport.name]) {
+                    map.removeLayer(presetMarkers[airport.name]);
+                    togglePreset(airport);
+                }
+            });
+        }
+
+        // Function to update custom circles
+        function updateCustomCircles() {
+            customMarkers.forEach(item => {
+                item.circle.setRadius(nauticalMilesToMeters(distanceNM));
+            });
+        }
+
+        // Function to clear custom markers
+        function clearCustomMarkers() {
+            customMarkers.forEach(item => {
+                map.removeLayer(item.marker);
+                map.removeLayer(item.circle);
+            });
+            customMarkers = [];
+        }
+
+        // Create preset checkboxes
+        const presetsDiv = document.getElementById('presets');
+        airports.forEach(airport => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'preset-checkbox';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = airport.name;
+            checkbox.onclick = () => togglePreset(airport);
+            const label = document.createElement('label');
+            label.htmlFor = airport.name;
+            label.textContent = airport.name;
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(label);
+            presetsDiv.appendChild(checkboxDiv);
+        });
+
+        // Event listener for map clicks
+        map.on('click', function(e) {
+            placeMarkerAndCircle([e.latlng.lat, e.latlng.lng]);
         });
     </script>
 </body>
