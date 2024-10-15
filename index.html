@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airport Distance Circle Drawer</title>
+    <title>EPFD Distance Visualizer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
@@ -11,9 +11,8 @@
         #map { height: 600px; width: 100%; }
         #controls, #search, #presets { margin-bottom: 10px; }
         #search input { width: 300px; }
-        #presets { display: flex; flex-wrap: wrap; }
-        .preset-checkbox { margin-right: 10px; }
         #clearButton { margin-left: 10px; }
+        select { padding: 5px; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -28,7 +27,11 @@
         <input type="number" id="distance" value="200" min="1">
         <button onclick="updateDistance()">Update Distance</button>
     </div>
-    <div id="presets"></div>
+    <div id="presets">
+        <select id="airportSelect" onchange="selectAirport()">
+            <option value="">Select an airport</option>
+        </select>
+    </div>
     <div id="map"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
@@ -42,11 +45,9 @@
         }).addTo(map);
 
         // Variables to store the current circle and marker
-        var circle;
-        var marker;
         var distanceNM = 200;
-        var presetMarkers = {};
         var customMarkers = [];
+        var presetMarker;
 
         // List of preset airports
         const airports = [
@@ -78,7 +79,7 @@
                 return;
             }
             updateCustomCircles();
-            updatePresetCircles();
+            updatePresetCircle();
         }
 
         // Function to search for a location
@@ -124,11 +125,15 @@
             customMarkers.push({ marker: newMarker, circle: newCircle });
         }
 
-        // Function to toggle preset marker and circle
-        function togglePreset(airport) {
-            const checkbox = document.getElementById(airport.name);
-            if (checkbox.checked) {
-                const markerCircle = L.layerGroup([
+        // Function to select airport from dropdown
+        function selectAirport() {
+            const selectedAirport = document.getElementById('airportSelect').value;
+            if (presetMarker) {
+                map.removeLayer(presetMarker);
+            }
+            if (selectedAirport) {
+                const airport = airports.find(a => a.name === selectedAirport);
+                presetMarker = L.layerGroup([
                     L.marker([airport.lat, airport.lon]).bindPopup(airport.name),
                     L.circle([airport.lat, airport.lon], {
                         color: 'blue',
@@ -137,21 +142,16 @@
                         radius: nauticalMilesToMeters(distanceNM)
                     })
                 ]).addTo(map);
-                presetMarkers[airport.name] = markerCircle;
-            } else if (presetMarkers[airport.name]) {
-                map.removeLayer(presetMarkers[airport.name]);
-                delete presetMarkers[airport.name];
+                map.setView([airport.lat, airport.lon], 10);
             }
         }
 
-        // Function to update preset circles
-        function updatePresetCircles() {
-            airports.forEach(airport => {
-                if (presetMarkers[airport.name]) {
-                    map.removeLayer(presetMarkers[airport.name]);
-                    togglePreset(airport);
-                }
-            });
+        // Function to update preset circle
+        function updatePresetCircle() {
+            if (presetMarker) {
+                map.removeLayer(presetMarker);
+                selectAirport();
+            }
         }
 
         // Function to update custom circles
@@ -170,21 +170,13 @@
             customMarkers = [];
         }
 
-        // Create preset checkboxes
-        const presetsDiv = document.getElementById('presets');
+        // Populate dropdown menu
+        const airportSelect = document.getElementById('airportSelect');
         airports.forEach(airport => {
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'preset-checkbox';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = airport.name;
-            checkbox.onclick = () => togglePreset(airport);
-            const label = document.createElement('label');
-            label.htmlFor = airport.name;
-            label.textContent = airport.name;
-            checkboxDiv.appendChild(checkbox);
-            checkboxDiv.appendChild(label);
-            presetsDiv.appendChild(checkboxDiv);
+            const option = document.createElement('option');
+            option.value = airport.name;
+            option.textContent = airport.name;
+            airportSelect.appendChild(option);
         });
 
         // Event listener for map clicks
