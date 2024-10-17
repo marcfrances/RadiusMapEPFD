@@ -47,6 +47,17 @@
         var customMarker;
         var presetMarker;
 
+        // NASA logo as a data URI (simplified version)
+        var nasaLogoUrl = 'https://th.bing.com/th/id/R.ae42d855fd2e000889b1733f7833102d?rik=L0xX4U5jfJz7Bw&pid=ImgRaw&r=0';
+
+        // Create a custom icon for the NASA logo
+        var nasaIcon = L.icon({
+            iconUrl: nasaLogoUrl,
+            iconSize: [44, 40], // size of the icon
+            iconAnchor: [20, 20], // point of the icon which will correspond to marker's location
+            popupAnchor: [0, -20] // point from which the popup should open relative to the iconAnchor
+        });
+
         // List of preset airports
         const airports = [
             { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
@@ -105,9 +116,9 @@
                 map.removeLayer(customMarker);
             }
 
-            // Create a new marker and circle
+            // Create a new marker with NASA logo and circle
             customMarker = L.layerGroup([
-                L.marker(latlng),
+                L.marker(latlng, {icon: nasaIcon}),
                 L.circle(latlng, {
                     color: 'red',
                     fillColor: '#f03',
@@ -135,7 +146,7 @@
             if (selectedAirport) {
                 const airport = airports.find(a => a.name === selectedAirport);
                 presetMarker = L.layerGroup([
-                    L.marker([airport.lat, airport.lon]).bindPopup(airport.name),
+                    L.marker([airport.lat, airport.lon], {icon: nasaIcon}).bindPopup(airport.name),
                     L.circle([airport.lat, airport.lon], {
                         color: 'blue',
                         fillColor: '#30f',
@@ -143,7 +154,6 @@
                         radius: nauticalMilesToMeters(distanceNM)
                     })
                 ]).addTo(map);
-                // Removed the map.setView line to prevent automatic panning
             }
         }
 
