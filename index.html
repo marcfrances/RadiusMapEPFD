@@ -11,7 +11,6 @@
         #map { height: 600px; width: 100%; }
         #controls, #search, #presets { margin-bottom: 10px; }
         #search input { width: 300px; }
-        #clearButton { margin-left: 10px; }
         select { padding: 5px; margin-right: 10px; }
     </style>
 </head>
@@ -20,7 +19,6 @@
     <div id="search">
         <input type="text" id="searchInput" placeholder="Search for a location">
         <button onclick="searchLocation()">Search</button>
-        <button id="clearButton" onclick="clearCustomMarkers()">Clear Custom Markers</button>
     </div>
     <div id="controls">
         <label for="distance">Distance (nautical miles): </label>
@@ -46,7 +44,7 @@
 
         // Variables to store the current circle and marker
         var distanceNM = 200;
-        var customMarkers = [];
+        var customMarker;
         var presetMarker;
 
         // List of preset airports
@@ -78,7 +76,7 @@
                 alert("Please enter a valid number greater than 0.");
                 return;
             }
-            updateCustomCircles();
+            updateCustomCircle();
             updatePresetCircle();
         }
 
@@ -102,27 +100,30 @@
 
         // Function to place marker and circle
         function placeMarkerAndCircle(latlng) {
-            // Create a new circle and marker
-            var newCircle = L.circle(latlng, {
-                color: 'red',
-                fillColor: '#f03',
-                fillOpacity: 0.3,
-                radius: nauticalMilesToMeters(distanceNM)
-            }).addTo(map);
+            // Remove previous custom marker if it exists
+            if (customMarker) {
+                map.removeLayer(customMarker);
+            }
 
-            var newMarker = L.marker(latlng).addTo(map);
+            // Create a new marker and circle
+            customMarker = L.layerGroup([
+                L.marker(latlng),
+                L.circle(latlng, {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.3,
+                    radius: nauticalMilesToMeters(distanceNM)
+                })
+            ]).addTo(map);
 
             // Get location name
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng[0]}&lon=${latlng[1]}`)
                 .then(response => response.json())
                 .then(data => {
                     var locationName = data.display_name.split(',')[0];
-                    newMarker.bindPopup(locationName).openPopup();
+                    customMarker.getLayers()[0].bindPopup(locationName).openPopup();
                 })
                 .catch(error => console.error('Error:', error));
-
-            // Add to custom markers array
-            customMarkers.push({ marker: newMarker, circle: newCircle });
         }
 
         // Function to select airport from dropdown
@@ -142,7 +143,7 @@
                         radius: nauticalMilesToMeters(distanceNM)
                     })
                 ]).addTo(map);
-                map.setView([airport.lat, airport.lon], 10);
+                // Removed the map.setView line to prevent automatic panning
             }
         }
 
@@ -154,20 +155,13 @@
             }
         }
 
-        // Function to update custom circles
-        function updateCustomCircles() {
-            customMarkers.forEach(item => {
-                item.circle.setRadius(nauticalMilesToMeters(distanceNM));
-            });
-        }
-
-        // Function to clear custom markers
-        function clearCustomMarkers() {
-            customMarkers.forEach(item => {
-                map.removeLayer(item.marker);
-                map.removeLayer(item.circle);
-            });
-            customMarkers = [];
+        // Function to update custom circle
+        function updateCustomCircle() {
+            if (customMarker) {
+                map.removeLayer(customMarker);
+                const latlng = customMarker.getLayers()[0].getLatLng();
+                placeMarkerAndCircle([latlng.lat, latlng.lng]);
+            }
         }
 
         // Populate dropdown menu
