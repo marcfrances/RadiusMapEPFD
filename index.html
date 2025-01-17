@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- Previous head content remains the same -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPFD Distance Visualizer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <style>
-        /* Reset and base styles */
+        /* Previous styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -21,7 +22,6 @@
             background-color: #f5f5f5;
         }
 
-        /* Typography */
         h1 {
             color: #333;
             text-align: center;
@@ -30,7 +30,6 @@
             padding: 1rem;
         }
 
-        /* Control sections */
         .control-section {
             background-color: white;
             padding: 1rem;
@@ -39,7 +38,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Flex containers */
         .flex-container {
             display: flex;
             gap: 1rem;
@@ -48,7 +46,6 @@
             margin-bottom: 1rem;
         }
 
-        /* Input and button styles */
         input[type="text"],
         input[type="number"],
         select {
@@ -87,7 +84,6 @@
             background-color: #c82333;
         }
 
-        /* Map container */
         #map {
             height: 600px;
             width: 100%;
@@ -96,7 +92,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -115,15 +110,21 @@
             }
         }
 
-        /* Labels */
         label {
             font-weight: 500;
             color: #444;
             min-width: fit-content;
         }
+
+        /* Add custom styling for the layer control */
+        .leaflet-control-layers {
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
     </style>
 </head>
 <body>
+    <!-- Previous body content remains the same until the script -->
     <h1>EPFD Distance Visualizer</h1>
     
     <div class="control-section">
@@ -154,14 +155,34 @@
         // Initialize the map
         var map = L.map('map').setView([39.8283, -98.5795], 4);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        // Define the base layers
+        var streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        });
 
+        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 19
+        });
+
+        // Add the street layer to the map initially
+        streets.addTo(map);
+
+        // Create the layer control and add it to the map
+        var baseLayers = {
+            "Street Map": streets,
+            "Satellite": satellite
+        };
+
+        L.control.layers(baseLayers).addTo(map);
+
+        // Rest of your JavaScript code remains the same
         var distanceNM = 200;
         var customMarker;
         var presetMarker;
 
+        // Previous JavaScript code remains exactly the same
         const airports = [
             { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
             { name: "King County International Airport", lat: 47.5290, lon: -122.3019 },
