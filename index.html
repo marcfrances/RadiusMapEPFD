@@ -6,58 +6,162 @@
     <title>EPFD Distance Visualizer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        h1 { color: #333; text-align: center; }
-        #map { height: 600px; width: 100%; }
-        #controls, #search, #presets { margin-bottom: 10px; }
-        #search input { width: 300px; }
-        select { padding: 5px; margin-right: 10px; }
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        /* Typography */
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            padding: 1rem;
+        }
+
+        /* Control sections */
+        .control-section {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Flex containers */
+        .flex-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Input and button styles */
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        input[type="text"] {
+            min-width: 200px;
+            max-width: 400px;
+            flex: 1;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0052a3;
+        }
+
+        #clearButton {
+            background-color: #dc3545;
+        }
+
+        #clearButton:hover {
+            background-color: #c82333;
+        }
+
+        /* Map container */
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .flex-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            select,
+            button {
+                width: 100%;
+            }
+        }
+
+        /* Labels */
+        label {
+            font-weight: 500;
+            color: #444;
+            min-width: fit-content;
+        }
     </style>
 </head>
 <body>
     <h1>EPFD Distance Visualizer</h1>
-    <div id="search">
-        <input type="text" id="searchInput" placeholder="Search for a location">
-        <button onclick="searchLocation()">Search</button>
+    
+    <div class="control-section">
+        <div class="flex-container">
+            <input type="text" id="searchInput" placeholder="Search for a location">
+            <button onclick="searchLocation()">Search</button>
+            <button id="clearButton" onclick="clearCustomMarkers()">Clear Markers</button>
+        </div>
+        
+        <div class="flex-container">
+            <label for="distance">Distance (nautical miles):</label>
+            <input type="number" id="distance" value="200" min="1">
+            <button onclick="updateDistance()">Update Distance</button>
+        </div>
+        
+        <div class="flex-container">
+            <label for="airportSelect">Select Airport:</label>
+            <select id="airportSelect" onchange="selectAirport()">
+                <option value="">Select an airport</option>
+            </select>
+        </div>
     </div>
-    <div id="controls">
-        <label for="distance">Distance (nautical miles): </label>
-        <input type="number" id="distance" value="200" min="1">
-        <button onclick="updateDistance()">Update Distance</button>
-    </div>
-    <div id="presets">
-        <select id="airportSelect" onchange="selectAirport()">
-            <option value="">Select an airport</option>
-        </select>
-    </div>
+
     <div id="map"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script>
         // Initialize the map
-        var map = L.map('map').setView([39.8283, -98.5795], 4); // Centered on the US
+        var map = L.map('map').setView([39.8283, -98.5795], 4);
 
-        // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Variables to store the current circle and marker
         var distanceNM = 200;
         var customMarker;
         var presetMarker;
 
-        // FAA logo as icon
-        var nasaLogoUrl = 'https://th.bing.com/th/id/R.ae42d855fd2e000889b1733f7833102d?rik=L0xX4U5jfJz7Bw&pid=ImgRaw&r=0';
-
-        var nasaIcon = L.icon({
-            iconUrl: nasaLogoUrl,
-            iconSize: [44, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
-        });
-
-        // List of preset airports
         const airports = [
             { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
             { name: "King County International Airport", lat: 47.5290, lon: -122.3019 },
@@ -74,12 +178,10 @@
             { name: "First Flight Airport", lat: 36.0169, lon: -75.6718 }
         ];
 
-        // Function to convert nautical miles to meters
         function nauticalMilesToMeters(nauticalMiles) {
             return nauticalMiles * 1852;
         }
 
-        // Function to update the distance
         function updateDistance() {
             distanceNM = parseInt(document.getElementById('distance').value);
             if (isNaN(distanceNM) || distanceNM < 1) {
@@ -90,7 +192,6 @@
             updatePresetCircle();
         }
 
-        // Function to search for a location
         function searchLocation() {
             var query = document.getElementById('searchInput').value;
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
@@ -108,16 +209,13 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        // Function to place marker and circle
         function placeMarkerAndCircle(latlng) {
-            // Remove previous custom marker if it exists
             if (customMarker) {
                 map.removeLayer(customMarker);
             }
 
-            // Create a new marker with logo and circle
             customMarker = L.layerGroup([
-                L.marker(latlng, {icon: nasaIcon}),
+                L.marker(latlng),
                 L.circle(latlng, {
                     color: 'red',
                     fillColor: '#f03',
@@ -126,7 +224,6 @@
                 })
             ]).addTo(map);
 
-            // Get location name
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng[0]}&lon=${latlng[1]}`)
                 .then(response => response.json())
                 .then(data => {
@@ -136,7 +233,6 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        // Function to select airport from dropdown
         function selectAirport() {
             const selectedAirport = document.getElementById('airportSelect').value;
             if (presetMarker) {
@@ -145,7 +241,7 @@
             if (selectedAirport) {
                 const airport = airports.find(a => a.name === selectedAirport);
                 presetMarker = L.layerGroup([
-                    L.marker([airport.lat, airport.lon], {icon: nasaIcon}).bindPopup(airport.name),
+                    L.marker([airport.lat, airport.lon]).bindPopup(airport.name),
                     L.circle([airport.lat, airport.lon], {
                         color: 'blue',
                         fillColor: '#30f',
@@ -156,7 +252,6 @@
             }
         }
 
-        // Function to update preset circle
         function updatePresetCircle() {
             if (presetMarker) {
                 map.removeLayer(presetMarker);
@@ -164,7 +259,6 @@
             }
         }
 
-        // Function to update custom circle
         function updateCustomCircle() {
             if (customMarker) {
                 map.removeLayer(customMarker);
@@ -173,7 +267,13 @@
             }
         }
 
-        // Populate dropdown menu
+        function clearCustomMarkers() {
+            if (customMarker) {
+                map.removeLayer(customMarker);
+                customMarker = null;
+            }
+        }
+
         const airportSelect = document.getElementById('airportSelect');
         airports.forEach(airport => {
             const option = document.createElement('option');
@@ -182,7 +282,6 @@
             airportSelect.appendChild(option);
         });
 
-        // Event listener for map clicks
         map.on('click', function(e) {
             placeMarkerAndCircle([e.latlng.lat, e.latlng.lng]);
         });
