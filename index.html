@@ -12,7 +12,6 @@
         #controls, #search, #presets { margin-bottom: 10px; }
         #search input { width: 300px; }
         select { padding: 5px; margin-right: 10px; }
-        #model-viewer { width: 100%; height: 600px; }
     </style>
 </head>
 <body>
@@ -33,28 +32,22 @@
     </div>
     <div id="map"></div>
 
-    <h2>3D Model Viewer</h2>
-    <button onclick="toggleModel()">Toggle Model</button>
-    <input type="file" id="fileInput" accept=".glb" onchange="loadModel(event)">
-    <input type="file" id="skyboxInput" accept="image/*" onchange="loadSkyboxTexture(event)">
-    <div id="model-viewer"></div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
     <script>
-        // Map initialization code (unchanged)
-        var map = L.map('map').setView([39.8283, -98.5795], 4);
+        // Initialize the map
+        var map = L.map('map').setView([39.8283, -98.5795], 4); // Centered on the US
+
+        // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
+        // Variables to store the current circle and marker
         var distanceNM = 200;
         var customMarker;
         var presetMarker;
 
+        // FAA logo as icon
         var nasaLogoUrl = 'https://th.bing.com/th/id/R.ae42d855fd2e000889b1733f7833102d?rik=L0xX4U5jfJz7Bw&pid=ImgRaw&r=0';
 
         var nasaIcon = L.icon({
@@ -64,6 +57,7 @@
             popupAnchor: [0, -20]
         });
 
+        // List of preset airports
         const airports = [
             { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
             { name: "King County International Airport", lat: 47.5290, lon: -122.3019 },
@@ -80,11 +74,12 @@
             { name: "First Flight Airport", lat: 36.0169, lon: -75.6718 }
         ];
 
-        // Map functions (unchanged)
+        // Function to convert nautical miles to meters
         function nauticalMilesToMeters(nauticalMiles) {
             return nauticalMiles * 1852;
         }
 
+        // Function to update the distance
         function updateDistance() {
             distanceNM = parseInt(document.getElementById('distance').value);
             if (isNaN(distanceNM) || distanceNM < 1) {
@@ -95,6 +90,7 @@
             updatePresetCircle();
         }
 
+        // Function to search for a location
         function searchLocation() {
             var query = document.getElementById('searchInput').value;
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
@@ -112,10 +108,14 @@
                 .catch(error => console.error('Error:', error));
         }
 
+        // Function to place marker and circle
         function placeMarkerAndCircle(latlng) {
+            // Remove previous custom marker if it exists
             if (customMarker) {
                 map.removeLayer(customMarker);
             }
+
+            // Create a new marker with logo and circle
             customMarker = L.layerGroup([
                 L.marker(latlng, {icon: nasaIcon}),
                 L.circle(latlng, {
@@ -126,6 +126,7 @@
                 })
             ]).addTo(map);
 
+            // Get location name
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng[0]}&lon=${latlng[1]}`)
                 .then(response => response.json())
                 .then(data => {
@@ -135,6 +136,7 @@
                 .catch(error => console.error('Error:', error));
         }
 
+        // Function to select airport from dropdown
         function selectAirport() {
             const selectedAirport = document.getElementById('airportSelect').value;
             if (presetMarker) {
@@ -154,6 +156,7 @@
             }
         }
 
+        // Function to update preset circle
         function updatePresetCircle() {
             if (presetMarker) {
                 map.removeLayer(presetMarker);
@@ -161,6 +164,7 @@
             }
         }
 
+        // Function to update custom circle
         function updateCustomCircle() {
             if (customMarker) {
                 map.removeLayer(customMarker);
@@ -169,6 +173,7 @@
             }
         }
 
+        // Populate dropdown menu
         const airportSelect = document.getElementById('airportSelect');
         airports.forEach(airport => {
             const option = document.createElement('option');
@@ -177,158 +182,10 @@
             airportSelect.appendChild(option);
         });
 
+        // Event listener for map clicks
         map.on('click', function(e) {
             placeMarkerAndCircle([e.latlng.lat, e.latlng.lng]);
         });
-
-        // Three.js 3D Model Viewer
-        let scene, camera, renderer, model, controls, skybox;
-        let currentModelIndex = 0;
-        const modelPaths = ['Models\DHC7 HiFi 2.38_final.glb', 'Models\Gateway Core.glb'];
-
-        function initModelViewer() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / 600, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, 600);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1;
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            document.getElementById('model-viewer').appendChild(renderer.domElement);
-
-            // Lighting setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(5, 10, 7.5);
-            scene.add(directionalLight);
-
-            camera.position.z = 5;
-
-            // Add OrbitControls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.25;
-            controls.screenSpacePanning = false;
-            controls.maxPolarAngle = Math.PI / 2;
-
-            // Initialize with default skybox
-            loadDefaultSkybox();
-
-            animate();
-            loadDefaultModel();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (model) {
-                model.rotation.y += 0.002; // Slower rotation
-            }
-            controls.update(); // Update controls in the animation loop
-            renderer.render(scene, camera);
-        }
-
-        function loadModel(event) {
-            const file = event.target.files[0];
-            const loader = new THREE.GLTFLoader();
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                const contents = e.target.result;
-                loader.parse(contents, '', function(gltf) {
-                    addModelToScene(gltf.scene);
-                }, undefined, function(error) {
-                    console.error(error);
-                });
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        function loadDefaultModel() {
-            const loader = new THREE.GLTFLoader();
-            loader.load(modelPaths[currentModelIndex], function(gltf) {
-                addModelToScene(gltf.scene);
-            }, undefined, function(error) {
-                console.error('An error occurred while loading the default model:', error);
-            });
-        }
-
-        function addModelToScene(newModel) {
-            if (model) {
-                scene.remove(model);
-            }
-            model = newModel;
-            scene.add(model);
-
-            // Center and scale the model
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 8 / maxDim;
-            model.scale.multiplyScalar(scale);
-            model.position.sub(center.multiplyScalar(scale));
-        }
-
-        function toggleModel() {
-            currentModelIndex = (currentModelIndex + 1) % modelPaths.length;
-            loadDefaultModel();
-        }
-
-        function loadDefaultSkybox() {
-            const loader = new THREE.CubeTextureLoader();
-            const texture = loader.load([
-                'Skybox\Skybox.jpg',
-                'Skybox\Skybox.jpg',
-                'Skybox\Skybox.jpg',
-                'Skybox\Skybox.jpg',
-                'Skybox\Skybox.jpg',
-                'Skybox\Skybox.jpg',
-            ]);
-            scene.background = texture;
-        }
-
-        function loadSkyboxTexture(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                const image = new Image();
-                image.onload = function() {
-                    const texture = new THREE.Texture(image);
-                    texture.needsUpdate = true;
-                    const shader = THREE.ShaderLib.equirect;
-                    const material = new THREE.ShaderMaterial({
-                        fragmentShader: shader.fragmentShader,
-                        vertexShader: shader.vertexShader,
-                        uniforms: shader.uniforms,
-                        depthWrite: false,
-                        side: THREE.BackSide
-                    });
-                    material.uniforms.tEquirect.value = texture;
-                    const sphere = new THREE.SphereGeometry(500, 60, 40);
-                    skybox = new THREE.Mesh(sphere, material);
-                    scene.add(skybox);
-                };
-                image.src = e.target.result;
-            };
-
-            reader.readAsDataURL(file);
-        }
-
-        // Handle window resizing
-        window.addEventListener('resize', onWindowResize, false);
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / 600;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, 600);
-        }
-
-        initModelViewer();
     </script>
 </body>
 </html>
-
