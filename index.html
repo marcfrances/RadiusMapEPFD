@@ -1,311 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
-<!-- Previous head content remains the same -->
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EPFD Distance Visualizer</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <style>
-        /* Previous styles remain the same */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: #f5f5f5;
-        }
-
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-size: clamp(1.5rem, 4vw, 2.5rem);
-            padding: 1rem;
-        }
-
-        .control-section {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .flex-container {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        select {
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-
-        input[type="text"] {
-            min-width: 200px;
-            max-width: 400px;
-            flex: 1;
-        }
-
-        button {
-            padding: 0.5rem 1rem;
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #0052a3;
-        }
-
-        #clearButton {
-            background-color: #dc3545;
-        }
-
-        #clearButton:hover {
-            background-color: #c82333;
-        }
-
-        #map {
-            height: 600px;
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .flex-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            input[type="text"],
-            input[type="number"],
-            select,
-            button {
-                width: 100%;
-            }
-        }
-
-        label {
-            font-weight: 500;
-            color: #444;
-            min-width: fit-content;
-        }
-
-        /* Add custom styling for the layer control */
-        .leaflet-control-layers {
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        }
-    </style>
+<title>Building 3 GRC</title>
+<meta charset="utf-8">
+<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
+<style> @-ms-viewport { width: device-width; } </style>
+<link rel="stylesheet" href="vendor/reset.min.css">
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <!-- Previous body content remains the same until the script -->
-    <h1>EPFD Distance Visualizer</h1>
+<body class="multiple-scenes view-control-buttons">
+
+<div id="pano"></div>
+
+<div id="sceneList">
+  <ul class="scenes">
     
-    <div class="control-section">
-        <div class="flex-container">
-            <input type="text" id="searchInput" placeholder="Search for a location">
-            <button onclick="searchLocation()">Search</button>
-            <button id="clearButton" onclick="clearCustomMarkers()">Clear Markers</button>
-        </div>
-        
-        <div class="flex-container">
-            <label for="distance">Distance (nautical miles):</label>
-            <input type="number" id="distance" value="200" min="1">
-            <button onclick="updateDistance()">Update Distance</button>
-        </div>
-        
-        <div class="flex-container">
-            <label for="airportSelect">Select Airport:</label>
-            <select id="airportSelect" onchange="selectAirport()">
-                <option value="">Select an airport</option>
-            </select>
-        </div>
-    </div>
+      <a href="javascript:void(0)" class="scene" data-id="0-1">
+        <li class="text">1</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="1-2">
+        <li class="text">2</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="2-3">
+        <li class="text">3</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="3-4">
+        <li class="text">4</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="4-5">
+        <li class="text">5</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="5-6">
+        <li class="text">6</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="6-7">
+        <li class="text">7</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="7-8">
+        <li class="text">8</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="8-9">
+        <li class="text">9</li>
+      </a>
+    
+  </ul>
+</div>
 
-    <div id="map"></div>
+<div id="titleBar">
+  <h1 class="sceneName"></h1>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
-    <script>
-        // Initialize the map
-        var map = L.map('map').setView([39.8283, -98.5795], 4);
+<a href="javascript:void(0)" id="autorotateToggle">
+  <img class="icon off" src="img/play.png">
+  <img class="icon on" src="img/pause.png">
+</a>
 
-        // Define the base layers
-        var streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        });
+<a href="javascript:void(0)" id="fullscreenToggle">
+  <img class="icon off" src="img/fullscreen.png">
+  <img class="icon on" src="img/windowed.png">
+</a>
 
-        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-            maxZoom: 19
-        });
+<a href="javascript:void(0)" id="sceneListToggle">
+  <img class="icon off" src="img/expand.png">
+  <img class="icon on" src="img/collapse.png">
+</a>
 
-        // Add the street layer to the map initially
-        streets.addTo(map);
+<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
+  <img class="icon" src="img/up.png">
+</a>
+<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
+  <img class="icon" src="img/down.png">
+</a>
+<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
+  <img class="icon" src="img/left.png">
+</a>
+<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
+  <img class="icon" src="img/right.png">
+</a>
+<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
+  <img class="icon" src="img/plus.png">
+</a>
+<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
+  <img class="icon" src="img/minus.png">
+</a>
 
-        // Create the layer control and add it to the map
-        var baseLayers = {
-            "Street Map": streets,
-            "Satellite": satellite
-        };
+<script src="vendor/screenfull.min.js" ></script>
+<script src="vendor/bowser.min.js" ></script>
+<script src="vendor/marzipano.js" ></script>
 
-        L.control.layers(baseLayers).addTo(map);
+<script src="data.js"></script>
+<script src="index.js"></script>
 
-        // Rest of your JavaScript code remains the same
-        var distanceNM = 200;
-        var customMarker;
-        var presetMarker;
-
-        // Previous JavaScript code remains exactly the same
-        const airports = [
-            { name: "Grant County International Airport", lat: 47.1949, lon: -119.3208 },
-            { name: "King County International Airport", lat: 47.5290, lon: -122.3019 },
-            { name: "Paine Field", lat: 47.9063, lon: -122.2815 },
-            { name: "Manassas Regional Airport", lat: 38.7214, lon: -77.5151 },
-            { name: "Eastern West Virginia Regional Airport", lat: 39.4026, lon: -77.9846 },
-            { name: "Dayton International Airport", lat: 39.9024, lon: -84.2194 },
-            { name: "Langley Air Force Base", lat: 37.0825, lon: -76.3607 },
-            { name: "Norfolk International Airport", lat: 36.8946, lon: -76.2012 },
-            { name: "Edwards Air Force Base", lat: 34.9054, lon: -117.8836 },
-            { name: "Meadows Field", lat: 35.4339, lon: -119.0578 },
-            { name: "Moffett Federal Airfield", lat: 37.4160, lon: -122.0486 },
-            { name: "Tucson International Airport", lat: 32.1161, lon: -110.9410 },
-            { name: "First Flight Airport", lat: 36.0169, lon: -75.6718 }
-        ];
-
-        function nauticalMilesToMeters(nauticalMiles) {
-            return nauticalMiles * 1852;
-        }
-
-        function updateDistance() {
-            distanceNM = parseInt(document.getElementById('distance').value);
-            if (isNaN(distanceNM) || distanceNM < 1) {
-                alert("Please enter a valid number greater than 0.");
-                return;
-            }
-            updateCustomCircle();
-            updatePresetCircle();
-        }
-
-        function searchLocation() {
-            var query = document.getElementById('searchInput').value;
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        var lat = parseFloat(data[0].lat);
-                        var lon = parseFloat(data[0].lon);
-                        map.setView([lat, lon], 10);
-                        placeMarkerAndCircle([lat, lon]);
-                    } else {
-                        alert("Location not found. Please try a different search term.");
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function placeMarkerAndCircle(latlng) {
-            if (customMarker) {
-                map.removeLayer(customMarker);
-            }
-
-            customMarker = L.layerGroup([
-                L.marker(latlng),
-                L.circle(latlng, {
-                    color: 'red',
-                    fillColor: '#f03',
-                    fillOpacity: 0.3,
-                    radius: nauticalMilesToMeters(distanceNM)
-                })
-            ]).addTo(map);
-
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng[0]}&lon=${latlng[1]}`)
-                .then(response => response.json())
-                .then(data => {
-                    var locationName = data.display_name.split(',')[0];
-                    customMarker.getLayers()[0].bindPopup(locationName).openPopup();
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function selectAirport() {
-            const selectedAirport = document.getElementById('airportSelect').value;
-            if (presetMarker) {
-                map.removeLayer(presetMarker);
-            }
-            if (selectedAirport) {
-                const airport = airports.find(a => a.name === selectedAirport);
-                presetMarker = L.layerGroup([
-                    L.marker([airport.lat, airport.lon]).bindPopup(airport.name),
-                    L.circle([airport.lat, airport.lon], {
-                        color: 'blue',
-                        fillColor: '#30f',
-                        fillOpacity: 0.3,
-                        radius: nauticalMilesToMeters(distanceNM)
-                    })
-                ]).addTo(map);
-            }
-        }
-
-        function updatePresetCircle() {
-            if (presetMarker) {
-                map.removeLayer(presetMarker);
-                selectAirport();
-            }
-        }
-
-        function updateCustomCircle() {
-            if (customMarker) {
-                map.removeLayer(customMarker);
-                const latlng = customMarker.getLayers()[0].getLatLng();
-                placeMarkerAndCircle([latlng.lat, latlng.lng]);
-            }
-        }
-
-        function clearCustomMarkers() {
-            if (customMarker) {
-                map.removeLayer(customMarker);
-                customMarker = null;
-            }
-        }
-
-        const airportSelect = document.getElementById('airportSelect');
-        airports.forEach(airport => {
-            const option = document.createElement('option');
-            option.value = airport.name;
-            option.textContent = airport.name;
-            airportSelect.appendChild(option);
-        });
-
-        map.on('click', function(e) {
-            placeMarkerAndCircle([e.latlng.lat, e.latlng.lng]);
-        });
-    </script>
 </body>
 </html>
